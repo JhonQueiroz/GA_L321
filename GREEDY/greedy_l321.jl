@@ -13,14 +13,14 @@ function nodes_by_distance_upto3(g::AbstractGraph, s::Int)
     # Loop da busca em largura (BFS)
     head = 1
     while head <= length(q)
-        v = q[head]; head += 1 # Remove o primeiro da fila
-        dv = dist[v]
+        @inbounds v = q[head]; head += 1 # Remove o primeiro da fila
+        @inbounds dv = dist[v]
 
         # não expande além de 3
         dv == 3 && continue
 
         # Itera sobre os vizinhos do vértice atual 'v'
-        for u in neighbors(g, v)
+        @inbounds for u in neighbors(g, v)
             if dist[u] == -1   # Se 'u' ainda não foi visitado
                 dist[u] = dv + 1
                 push!(q, u)   # Adiciona na fila para processar depois
@@ -44,14 +44,14 @@ end
 function precompute_distsets(g::AbstractGraph)
     n = nv(g)
     distsets = Vector{Tuple{Vector{Int},Vector{Int},Vector{Int}}}(undef, n)
-    for v in 1:n
-        distsets[v] = nodes_by_distance_upto3(g, v)
+    @threads for v in 1:n
+        @inbounds distsets[v] = nodes_by_distance_upto3(g, v)
     end
     return distsets
 end
 
 # ==============================================================================
-# FUNÇÕES AUXILIARES 2: Gerenciamento do Vetor 'used' (Memória)
+# FUNÇÃO AUXILIAR 2: Gerenciamento do Vetor 'used' (Memória)
 # Objetivo: Controlar quais rótulos estão proibidos para o vértice atual.
 # Nota: Em Julia, vetores começam no índice 1. Como rótulos podem ser 0,
 # usamos a lógica: Índice do Vetor = Rótulo + 1.
@@ -111,7 +111,7 @@ function greedy_l321(g::AbstractGraph, sequence::Vector{Int}, distsets)
     # ---------------------------------------------------------
     # LOOP GULOSO: Processa cada vértice na ordem definida
     # ---------------------------------------------------------
-    for v in sequence
+    @inbounds for v in sequence
         # Recupera as listas de vizinhos pré-calculadas
         d1, d2, d3 = distsets[v]
 
@@ -122,21 +122,21 @@ function greedy_l321(g::AbstractGraph, sequence::Vector{Int}, distsets)
 
         # Regra Distância 1: Diferença deve ser >= 3.
         # Proibimos o intervalo [Lw - 2 até Lw + 2]
-        for w in d1
+        @inbounds for w in d1
             lw = labels[w]
             lw >= 0 && mark_range!(used, lw - 2, lw + 2)
         end
 
         # Regra Distância 2: Diferença deve ser >= 2.
         # Proibimos o intervalo [Lw - 1 até Lw + 1]
-        for w in d2
+        @inbounds for w in d2
             lw = labels[w]
             lw >= 0 && mark_range!(used, lw - 1, lw + 1)
         end
 
         # Regra Distância 3: Diferença deve ser >= 1 (apenas distintos).
         # Proibimos exatamente o valor Lw
-        for w in d3
+        @inbounds for w in d3
             lw = labels[w]
             lw >= 0 && mark_range!(used, lw, lw)
         end
@@ -162,15 +162,15 @@ function greedy_l321(g::AbstractGraph, sequence::Vector{Int}, distsets)
         # Isso deixa o vetor 'used' limpo (tudo false) para o próximo vértice 'v'.
         # É mais rápido do que recriar o vetor 'used' do zero.
         # =====================================================
-        for w in d1
+        @inbounds for w in d1
             lw = labels[w]
             lw >= 0 && unmark_range!(used, lw - 2, lw + 2)
         end
-        for w in d2
+        @inbounds for w in d2
             lw = labels[w]
             lw >= 0 && unmark_range!(used, lw - 1, lw + 1)
         end
-        for w in d3
+        @inbounds for w in d3
             lw = labels[w]
             lw >= 0 && unmark_range!(used, lw, lw)
         end

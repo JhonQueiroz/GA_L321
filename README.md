@@ -24,9 +24,9 @@ O projeto foi desenvolvido em Julia. Você deve ter o Julia instalado e os segui
 - `GA/main.jl` : script principal (CLI) do GA
 - `GA/ga_l321.jl` : implementação do GA
 - `GREEDY/greedy_l321.jl` : implementação do guloso e do pré-cálculo `distsets`
-- `run_ga_l321.sh` : script para execução em lote
+- `run_ga_l321.sh` : script Linux para execução em lote
 
-## Execução
+## Execução (Linux)
 Para executar o GA em lote (percorrendo recursivamente `base/` e gerando CSVs em `results/ga_l321/`):
 
 ```bash
