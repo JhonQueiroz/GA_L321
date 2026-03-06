@@ -37,7 +37,7 @@ end
 function evaluate!(population::Population, g::AbstractGraph, distsets)
     @threads for i in eachindex(population)
         _, span = greedy_l321(g, population[i].genome, distsets)  
-        population[i] = Individual(population[i].genome, span)    # atualiza fitness                    
+        @inbounds population[i] = Individual(population[i].genome, span)    # atualiza fitness                    
     end
 end                                    
 
@@ -69,7 +69,7 @@ function ox_two_point_crossover(p1::Individual, p2::Individual, rng::AbstractRNG
     end
 
     idx = 1
-    @inbounds for g in p2.genome
+    for g in p2.genome
         if !used1[g]
             while idx >= c1 && idx <= c2
                 idx = c2 + 1
@@ -93,7 +93,7 @@ function ox_two_point_crossover(p1::Individual, p2::Individual, rng::AbstractRNG
     end
 
     idx = 1
-    @inbounds for g in p1.genome
+    for g in p1.genome
         if !used2[g]
             while idx >= c1 && idx <= c2
                 idx = c2 + 1
@@ -123,7 +123,7 @@ function mutate_swap(ind::Individual, mutation_rate::Float64, rng::AbstractRNG):
         j = rand(rng, 1:n)
     end
 
-    genome[i], genome[j] = genome[j], genome[i]  # troca duas posições
+    @inbounds genome[i], genome[j] = genome[j], genome[i]  # troca duas posições
 
     return Individual(genome, typemax(Int))   # fitness fica inválido até reavaliar
 end
