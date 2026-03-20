@@ -1,41 +1,15 @@
 using Graphs
 using ArgParse
-using Random
 using CSV
 using DataFrames
 using Base.Threads
 
-include("../GREEDY/greedy_l321.jl")
-include("ga_l321.jl")  
+include("../GREEDY/greedy.jl")
+include("ga.jl")  
 
-# function read_simple_graph(filename::String)
-#     edges = Tuple{Int,Int}[]
-#     vertices = Set{Int}()
-
-#     for linha in eachline(filename)
-#         s = strip(linha)
-#         isempty(s) && continue
-#         u, v = parse.(Int, split(s))
-#         push!(edges, (u, v))
-#         push!(vertices, u)
-#         push!(vertices, v)
-#     end
-
-#     vertex_map = Dict{Int,Int}()
-#     for (i, v) in enumerate(sort!(collect(vertices)))
-#         vertex_map[v] = i
-#     end
-
-#     g = SimpleGraph(length(vertices))
-#     for (u, v) in edges
-#         add_edge!(g, vertex_map[u], vertex_map[v])
-#     end
-#     return g
-# end
-
-function read_normalized_graph(filename::String)
+function read_graph(filename::String)
     open(filename, "r") do io
-        n, _m = parse.(Int, split(strip(readline(io))))
+        n, m = parse.(Int, split(strip(readline(io))))
         g = SimpleGraph(n)
 
         for line in eachline(io)
@@ -52,7 +26,7 @@ function parse_command_line()
 
     @add_arg_table settings begin
         "--instance"
-            help = "Caminho para o arquivo de instância (edge-list normalizado)"
+            help = "Caminho para a instância no formato: primeira linha 'n m', demais linhas 'u v'"
             arg_type = String
             required = true
 
@@ -115,7 +89,7 @@ function main()
     trials          = args["trials"]
     output_file     = args["output"]
 
-    graph = read_normalized_graph(instance)
+    graph = read_graph(instance)
     distsets = precompute_distsets(graph)  # MUITO IMPORTANTE: pré-cálculo 1 vez
 
     popsize = max(2, floor(Int, nv(graph) / pop_factor))
@@ -127,6 +101,11 @@ function main()
         crossover_rate,
         mutation_rate
     )
+
+    # Definição dos operadores
+    selection_op = selection_roulette
+    crossover_op = ox_two_point_crossover
+    mutation_op  = mutate_swap
 
     isfile(output_file) && error("Arquivo $output_file já existe")
 
@@ -157,14 +136,14 @@ function main()
     # --------------------------
     # Warm-up (fora da medição)
     # --------------------------
-    best_warm, _ = run_ga_l321(params, graph, distsets, seed)  # warmup para JIT
+    best_warm, _ = run_ga_l321(params, graph, distsets, seed, selection_op, crossover_op, mutation_op)  # warmup para JIT
     # (não usa resultado)
 
     for t in 1:trials
         trial_seed = seed + t
 
         start = time()
-        best, best_per_gen = run_ga_l321(params, graph, distsets, trial_seed)
+        best, best_per_gen = run_ga_l321(params, graph, distsets, trial_seed, selection_op, crossover_op, mutation_op)
         elapsed = time() - start
 
         instance_name = basename(instance)
